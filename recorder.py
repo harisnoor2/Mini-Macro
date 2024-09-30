@@ -15,6 +15,7 @@ class Recorder:
     def __init__(self, ui_window, settings):
         self.ui_window = ui_window
         self.settings = settings
+        self._update_settings(self.settings)
         self.recording = False
         self.playback = False
         self.current_thread = None
@@ -28,6 +29,14 @@ class Recorder:
         self.keyboard_controller = keyboard.Controller()
         self.button_dict = {Button.left:"left_click", Button.right:"right_click", Button.middle:"middle_click", Button.x1:"side1_click", Button.x2:"side2_click"}
         self.selected_file = None
+        self.modifier_states = {
+            'ctrl': False,
+            'shift': False,
+            'alt': False
+        }
+
+    def is_loaded(self):
+        return len(self.events)
 
     def is_recording(self):
         return self.recording
@@ -37,6 +46,16 @@ class Recorder:
 
     def _update_settings(self, settings):
         self.settings = settings
+        keys = self.settings["record"].split(',')
+        if len(keys) == 1:
+            self.rec_hotkey = [keys[0], False]
+        else:
+            self.rec_hotkey = [keys[-1], True]
+        keys = self.settings["playback"].split(',')
+        if len(keys) == 1:  
+            self.play_hotkey = [keys[0], False]
+        else:
+            self.play_hotkey = [keys[-1], True]
 
     def start_recording(self):
         self.events = []
@@ -58,6 +77,7 @@ class Recorder:
                 return True
             except:
                 return False
+            
     @recording
     def on_move(self, x, y):
         self.events.append({"type":"move", "time":time() - self.recordtime, "x":x, "y":y})
@@ -73,23 +93,51 @@ class Recorder:
         self.events.append({"type":"scroll", "time":time() - self.recordtime, "x":x, "y":y, "dx":dx, "dy":dy})
 
     def on_press(self, key):
-        rec_hotkey = self.settings["record"]
-        play_hotkey = self.settings["playback"]
+        if key in [Key.ctrl, Key.ctrl_l, Key.ctrl_r]:
+            self.modifier_states['ctrl'] = True
+        elif key in [Key.shift, Key.shift_l, Key.shift_r]:
+            self.modifier_states['shift'] = True
+        elif key in [Key.alt, Key.alt_l, Key.alt_r]:
+            self.modifier_states['alt'] = True
+        
         _key = self.serialize_key(key)
-        if _key == "Key.esc":
-            self.ui_window.start_recording()
-            return
-        if _key == "Key.shift":
-            self.ui_window.start_playback()
-        self.events.append({"type":"key_press", "time":time() - self.recordtime, "key":_key})
 
-    @recording
+        if _key == self.rec_hotkey[0]:
+            if self.rec_hotkey[1] == True:
+                if all(self.modifier_states.values()):
+                    self.ui_window.start_recording()
+                    return
+            else:
+                self.ui_window.start_recording()
+                return
+
+        if _key == self.play_hotkey[0]:
+            if self.play_hotkey[1] == True:
+                if all(self.modifier_states.values()):
+                    self.ui_window.start_playback()
+                    self.recording = False
+                    return
+            else:
+                self.ui_window.start_playback()
+                self.recording = False
+                return
+
+        if self.is_recording():
+            self.events.append({"type":"key_press", "time":time() - self.recordtime, "key":_key})
+
     def on_release(self, key):
-        _key = self.serialize_key(key)
-        self.events.append({"type":"key_release", "time":time() - self.recordtime, "key":_key})
-        #if key == keyboard.Key.esc:
-            # Stop listener
-            #return False
+
+        if key in [Key.ctrl, Key.ctrl_l, Key.ctrl_r]:
+            self.modifier_states['ctrl'] = False
+        elif key in [Key.shift, Key.shift_l, Key.shift_r]:
+            self.modifier_states['shift'] = False
+        elif key in [Key.alt, Key.alt_l, Key.alt_r]:
+            self.modifier_states['alt'] = False
+
+        if self.is_recording():
+            _key = self.serialize_key(key)
+            self.events.append({"type":"key_release", "time":time() - self.recordtime, "key":_key})
+
 
     def stop_playback(self):
         self.playback = False
@@ -101,36 +149,48 @@ class Recorder:
         self.current_thread.start()
 
     def playback_thread(self):
+
         self.playback = True
         self.ui_window.record_button_switch(False)
         macro_events = self.events
         reverse_button_dict = {value:key for key,value in self.button_dict.items()}
-        start_time = time()
-        for event in macro_events:
-
-            sleep_time = max(0,event["time"] - (time() - start_time))
-            if sleep_time:
-                sleep(sleep_time)
-            if not self.is_playbacking():
+        playback_amount = self.settings["playback_amount"]
+        inf_loop = True
+        while inf_loop:
+            if playback_amount == 0:
+                _playback_amount = 1
+            else:
+                _playback_amount = playback_amount
+                inf_loop = False
+            for i in range(_playback_amount):
+                start_time = time()
+                for event in macro_events:
+                    sleep_time = max(0,event["time"] - (time() - start_time))
+                    if sleep_time:
+                        sleep(sleep_time)
+                    if not self.is_playbacking():
+                        break
+                    if event["type"] == "move":
+                        self.mouse_controller.position = (event["x"], event["y"])
+                    elif "click" in event["type"]:
+                        self.mouse_controller.position = (event["x"], event["y"])
+                        if event["pressed"]:
+                            self.mouse_controller.press(reverse_button_dict[event["type"]])
+                        else:
+                            self.mouse_controller.release(reverse_button_dict[event["type"]])
+                    elif event["type"] == "scroll":
+                        self.mouse_controller.position = (event["x"], event["y"])
+                        self.mouse_controller.scroll(event["dx"], event["dy"])
+                    elif event["type"] == "key_press":
+                        key = self.deserialize_key(event["key"])
+                        self.keyboard_controller.press(key)
+                    elif event["type"] == "key_release":
+                        key = self.deserialize_key(event["key"])
+                        self.keyboard_controller.release(key)
+                if not self.is_playbacking():
+                    break
+            if  not self.is_playbacking():
                 break
-            if event["type"] == "move":
-                self.mouse_controller.position = (event["x"], event["y"])
-            elif "click" in event["type"]:
-                self.mouse_controller.position = (event["x"], event["y"])
-                if event["pressed"]:
-                    self.mouse_controller.press(reverse_button_dict[event["type"]])
-                else:
-                    self.mouse_controller.release(reverse_button_dict[event["type"]])
-            elif event["type"] == "scroll":
-                self.mouse_controller.position = (event["x"], event["y"])
-                self.mouse_controller.scroll(event["dx"], event["dy"])
-            elif event["type"] == "key_press":
-                key = self.deserialize_key(event["key"])
-                self.keyboard_controller.press(key)
-            elif event["type"] == "key_release":
-                key = self.deserialize_key(event["key"])
-                self.keyboard_controller.release(key)
-
         self.playback = False
         self.ui_window.record_button_switch(True)
         self.current_thread = None

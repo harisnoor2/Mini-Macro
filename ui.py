@@ -1,7 +1,6 @@
 import tkinter as tk
 from recorder import Recorder
 from tkinter import ttk, messagebox, filedialog, Toplevel
-from misc import Hotkeys
 import json
 
 class Window:
@@ -16,7 +15,6 @@ class Window:
         self.root.resizable(False,False)
         self.saved_file_path = None
         self.recorder = Recorder(self, self.settings)
-        self.hotkey_controller = Hotkeys
         self.record_button = tk.Button(self.root, text = "Record", command = self.start_recording)
         self.record_button.pack()
 
@@ -47,7 +45,7 @@ class Window:
 
         self.playback_var = tk.StringVar(value=self.settings["playback"])
 
-        hotkey_playback_choice_menu.add_radiobutton(label="Ctrl Shift Alt R", variable=self.playback_var, value="Key.ctrl,Key.shift,Key.alt,p", command=self.change_hotkey)
+        hotkey_playback_choice_menu.add_radiobutton(label="Ctrl Shift Alt P", variable=self.playback_var, value="Key.ctrl,Key.shift,Key.alt,p", command=self.change_hotkey)
         hotkey_playback_choice_menu.add_radiobutton(label="F8", variable=self.playback_var, value="Key.f8", command=self.change_hotkey)
         hotkey_playback_choice_menu.add_radiobutton(label="F12", variable=self.playback_var, value="Key.f12", command=self.change_hotkey)
         hotkey_playback_choice_menu.add_radiobutton(label="Esc", variable=self.playback_var, value="Key.esc", command=self.change_hotkey)
@@ -57,16 +55,40 @@ class Window:
         menu_bar.add_cascade(label="Hotkeys", menu=hotkey_menu)
 
         playback_menu = tk.Menu(menu_bar, tearoff=0)
-        playback_menu.add_command(label="Options", command=self.about_app)
-
+        playback_menu.add_command(label="Amount", command=self.set_playback_amount)
         menu_bar.add_cascade(label="Playback", menu=playback_menu)
 
         self.root.config(menu=menu_bar)
 
+    def set_playback_amount(self):
+        amount_window = Toplevel(self.root)
+        amount_window.title("Set Playback Amount")
+        amount_window.geometry("200x80")
+        tk.Label(amount_window, text="Playback Amount (0-10):\nSet to 0 for inf").pack()
+        amount_entry = tk.Entry(amount_window)
+        amount_entry.insert(0, self.settings["playback_amount"])
+        amount_entry.pack()
+        submit_button = tk.Button(amount_window, text="Submit", 
+            command=lambda: self.save_playback_amount(amount_entry.get(), amount_window))
+        submit_button.pack()
+
+    def save_playback_amount(self, value, window):
+        try:
+            playback_amount = int(value)
+            if playback_amount < 0:
+                raise ValueError
+            else:
+                self.settings["playback_amount"] = playback_amount
+                self.update_settings()
+                window.destroy()
+
+        except ValueError:
+            messagebox.showwarning("WARNING", "Invalid Value")
+
     def change_hotkey(self):
         if self.recording_var.get() == self.playback_var.get():
             messagebox.showwarning("WARNING", "Hotkey Conflict")
-            self.playback_var.set("Ctrl Shift Alt P")
+            self.playback_var.set("Key.ctrl,Key.shift,Key.alt,p")
         else:
             self.settings["record"] = self.recording_var.get()
             self.settings["playback"] = self.playback_var.get()
@@ -130,7 +152,8 @@ class Window:
             self.playback_button.config(state="disabled")
 
     def start_playback(self):
-        if self.recorder.is_playbacking():
-            self.recorder.stop_playback()
-        else:
-            self.recorder.start_playback()
+        if self.recorder.is_loaded():
+            if self.recorder.is_playbacking():
+                self.recorder.stop_playback()
+            else:
+                self.recorder.start_playback()

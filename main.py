@@ -2,7 +2,6 @@ from ui import Window
 import json
 
 if __name__ == "__main__":
-    
     try:
         settings= open("settings.json", 'r')
     except FileNotFoundError:

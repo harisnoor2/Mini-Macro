@@ -1,6 +1,6 @@
 import tkinter as tk
 from recorder import Recorder
-from tkinter import ttk, messagebox, filedialog, Toplevel
+from tkinter import messagebox, filedialog, Toplevel
 import json
 
 class Window:

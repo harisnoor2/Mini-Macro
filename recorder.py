@@ -1,7 +1,7 @@
 from time import sleep, time
 from pynput import mouse, keyboard
 from pynput.mouse import Button
-from pynput.keyboard import KeyCode, Key
+from pynput.keyboard import Key
 import json, threading
 
 

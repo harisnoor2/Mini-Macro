@@ -1,0 +1,3 @@
+*.json
+*.txt
+src/__pycache__

@@ -1,7 +1,7 @@
 import tkinter as tk
 from recorder import Recorder
 from tkinter import messagebox, filedialog, Toplevel
-import json
+import json, os, sys
 from PIL import Image, ImageTk
 class Window:
     def __init__(self):
@@ -9,15 +9,20 @@ class Window:
         with open("settings.json", 'r') as  settings_file:
             self.settings = json.load(settings_file)
 
+        if getattr(sys, 'frozen', False):
+            base_path = sys._MEIPASS  # This is the temporary folder where PyInstaller extracts the files
+        else:
+            base_path = os.path.dirname(os.path.abspath(__file__))
+
         self.root = tk.Tk()
         self.root.title("Mini Macro")
         self.root.geometry("265x100")
         self.root.resizable(False,False)
         self.saved_file_path = None
         self.recorder = Recorder(self, self.settings)
-        self.rec_img = self.resize_image("src/assets/record.png", (50, 50))
-        self.stop_img = self.resize_image("src/assets/stop.png", (50, 50))
-        self.play_img = self.resize_image("src/assets/play.png", (50, 50))
+        self.rec_img = self.resize_image(os.path.join(base_path, "assets", "record.png"), (50, 50))
+        self.stop_img = self.resize_image(os.path.join(base_path, "assets", "stop.png"), (50, 50))
+        self.play_img = self.resize_image(os.path.join(base_path, "assets", "play.png"), (50, 50))
         self.record_button = tk.Button(self.root, image=self.rec_img, command = self.start_recording)
         self.playback_button = tk.Button(self.root, image = self.play_img, command = self.start_playback, state="disabled")
         self.record_button.grid(row=0, column=0, padx=38, pady=(10,10))
@@ -54,7 +59,7 @@ class Window:
         playback_menu.add_command(label="Amount", command=self.set_playback_amount)
         menu_bar.add_cascade(label="Playback", menu=playback_menu)
 
-        self.root.iconbitmap("src/assets/minimacro.ico")
+        self.root.iconbitmap(os.path.join(base_path, "assets", "minimacro.ico"))
         self.root.config(menu=menu_bar)
 
     def resize_image(self, image_path, size):

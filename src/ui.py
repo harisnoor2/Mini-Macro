@@ -19,10 +19,8 @@ class Window:
         self.stop_img = self.resize_image("src/assets/stop.png", (50, 50))
         self.play_img = self.resize_image("src/assets/play.png", (50, 50))
         self.record_button = tk.Button(self.root, image=self.rec_img, command = self.start_recording)
-        #self.record_button.pack()
         self.playback_button = tk.Button(self.root, image = self.play_img, command = self.start_playback, state="disabled")
-        #self.playback_button.pack()
-        self.record_button.grid(row=0, column=0, padx=38, pady=(10,10))  # Add padding to the buttons
+        self.record_button.grid(row=0, column=0, padx=38, pady=(10,10))
         self.playback_button.grid(row=0, column=1, padx=38, pady=(10,10))
         menu_bar = tk.Menu(self.root)
 
@@ -61,7 +59,7 @@ class Window:
 
     def resize_image(self, image_path, size):
         image = Image.open(image_path)
-        resized_image = image.resize(size)  # Use ANTIALIAS for better quality
+        resized_image = image.resize(size)
         return ImageTk.PhotoImage(resized_image)
     
     def set_playback_amount(self):

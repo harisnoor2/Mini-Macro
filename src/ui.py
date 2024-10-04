@@ -2,7 +2,7 @@ import tkinter as tk
 from recorder import Recorder
 from tkinter import messagebox, filedialog, Toplevel
 import json
-
+from PIL import Image, ImageTk
 class Window:
     def __init__(self):
 
@@ -11,15 +11,19 @@ class Window:
 
         self.root = tk.Tk()
         self.root.title("Mini Macro")
-        self.root.geometry("265x75")
+        self.root.geometry("265x100")
         self.root.resizable(False,False)
         self.saved_file_path = None
         self.recorder = Recorder(self, self.settings)
-        self.record_button = tk.Button(self.root, text = "Record", command = self.start_recording)
-        self.record_button.pack()
-        self.playback_button = tk.Button(self.root, text = "Playback", command = self.start_playback, state="disabled")
-        self.playback_button.pack()
-
+        self.rec_img = self.resize_image("src/assets/record.png", (50, 50))
+        self.stop_img = self.resize_image("src/assets/stop.png", (50, 50))
+        self.play_img = self.resize_image("src/assets/play.png", (50, 50))
+        self.record_button = tk.Button(self.root, image=self.rec_img, command = self.start_recording)
+        #self.record_button.pack()
+        self.playback_button = tk.Button(self.root, image = self.play_img, command = self.start_playback, state="disabled")
+        #self.playback_button.pack()
+        self.record_button.grid(row=0, column=0, padx=38, pady=(10,10))  # Add padding to the buttons
+        self.playback_button.grid(row=0, column=1, padx=38, pady=(10,10))
         menu_bar = tk.Menu(self.root)
 
         file_menu = tk.Menu(tearoff=0)
@@ -55,6 +59,11 @@ class Window:
         self.root.iconbitmap("src/assets/minimacro.ico")
         self.root.config(menu=menu_bar)
 
+    def resize_image(self, image_path, size):
+        image = Image.open(image_path)
+        resized_image = image.resize(size)  # Use ANTIALIAS for better quality
+        return ImageTk.PhotoImage(resized_image)
+    
     def set_playback_amount(self):
         amount_window = Toplevel(self.root)
         amount_window.title("Set Playback Amount")
@@ -116,20 +125,17 @@ class Window:
             self.saved_file_path = file_path
             self.recorder.event_to_json(self.saved_file_path)
 
-    def about_app(self):
-        messagebox.showinfo("About", "This is a sample application.")
-
     def run(self): 
         self.root.mainloop()
     
     def start_recording(self):
         if self.recorder.is_recording():
-            self.record_button.config(text="Record")
+            self.record_button.config(image=self.rec_img)
             self.recorder.stop_recording()
             self.playback_button_switch(True)
         else:
             self.saved_file_path = None
-            self.record_button.config(text="Stop")
+            self.record_button.config(image=self.stop_img)
             self.recorder.start_recording()
             self.playback_button_switch(False)
 
@@ -137,8 +143,11 @@ class Window:
     def record_button_switch(self, enabled):
         if enabled:
             self.record_button.config(state="active")
+            self.playback_button.config(image=self.play_img)
         else:
             self.record_button.config(state="disabled")
+            self.playback_button.config(image=self.stop_img)
+
 
     def playback_button_switch(self, enabled):
         if enabled:
@@ -150,5 +159,8 @@ class Window:
         if self.recorder.is_loaded():
             if self.recorder.is_playbacking():
                 self.recorder.stop_playback()
+                self.playback_button.config(image=self.play_img)
+
             else:
                 self.recorder.start_playback()
+                self.playback_button.config(image=self.stop_img)

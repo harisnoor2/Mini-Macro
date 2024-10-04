@@ -102,7 +102,7 @@ class Recorder:
         
         _key = self.serialize_key(key)
 
-        if _key == self.rec_hotkey[0]:
+        if not self.is_playbacking() and _key == self.rec_hotkey[0]:
             if self.rec_hotkey[1] == True:
                 if all(self.modifier_states.values()):
                     self.ui_window.start_recording()
@@ -110,16 +110,14 @@ class Recorder:
             else:
                 self.ui_window.start_recording()
                 return
-
-        if _key == self.play_hotkey[0]:
+            
+        if not self.is_recording() and _key == self.play_hotkey[0]:
             if self.play_hotkey[1] == True:
                 if all(self.modifier_states.values()):
                     self.ui_window.start_playback()
-                    self.recording = False
                     return
             else:
                 self.ui_window.start_playback()
-                self.recording = False
                 return
 
         if self.is_recording():
@@ -139,29 +137,29 @@ class Recorder:
             self.events.append({"type":"key_release", "time":time() - self.recordtime, "key":_key})
 
     def unpress_keys(self):
-        keys = {}
+        keys = set()
         for event in self.events:
             if event["type"] == "key_press":
+
                 keys.add(event["key"])
         for key in keys:
             self.keyboard_controller.release(self.deserialize_key(key))
-        for mouse_button in self.button_dict.keys():
-            self.mouse_controller.release(mouse_button)
+        #for mouse_button in self.button_dict.keys():
+            #self.mouse_controller.release(mouse_button) # unnecessary, easy for user to correct
 
 
     def stop_playback(self):
         self.playback = False
 
     def start_playback(self):
-        if isinstance(self.current_thread, threading.Thread):
-            self.current_thread.join()
+        #if isinstance(self.current_thread, threading.Thread):
+            #self.current_thread.join()
         self.current_thread = threading.Thread(target=self.playback_thread)
         self.current_thread.start()
 
     def playback_thread(self):
-
-        self.playback = True
         self.ui_window.record_button_switch(False)
+        self.playback = True
         macro_events = self.events
         reverse_button_dict = {value:key for key,value in self.button_dict.items()}
         playback_amount = self.settings["playback_amount"]
@@ -206,9 +204,9 @@ class Recorder:
                 break
 
         self.unpress_keys()
-        self.playback = False
         self.ui_window.record_button_switch(True)
         self.current_thread = None
+        self.playback = False
 
     def serialize_key(self, key):
         if "Key." in str(key):

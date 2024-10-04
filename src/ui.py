@@ -1,5 +1,5 @@
 import tkinter as tk
-from src.recorder import Recorder
+from recorder import Recorder
 from tkinter import messagebox, filedialog, Toplevel
 import json
 
@@ -17,7 +17,6 @@ class Window:
         self.recorder = Recorder(self, self.settings)
         self.record_button = tk.Button(self.root, text = "Record", command = self.start_recording)
         self.record_button.pack()
-
         self.playback_button = tk.Button(self.root, text = "Playback", command = self.start_playback, state="disabled")
         self.playback_button.pack()
 
@@ -26,11 +25,9 @@ class Window:
         file_menu = tk.Menu(tearoff=0)
         file_menu.add_command(label="Open", command=self.open_file)
         file_menu.add_command(label="Save", command=self.save_file)
-
         menu_bar.add_cascade(label="File", menu=file_menu)
 
         hotkey_menu = tk.Menu(menu_bar, tearoff=0)
-
         hotkey_recording_choice_menu = tk.Menu(hotkey_menu, tearoff=0)
         hotkey_menu.add_cascade(label="Recording", menu=hotkey_recording_choice_menu)
 
@@ -40,7 +37,6 @@ class Window:
         hotkey_recording_choice_menu.add_radiobutton(label="F8", variable=self.recording_var, value="Key.f8", command=self.change_hotkey)
         hotkey_recording_choice_menu.add_radiobutton(label="F12", variable=self.recording_var, value="Key.f12", command=self.change_hotkey)
         hotkey_recording_choice_menu.add_radiobutton(label="Esc", variable=self.recording_var, value="Key.esc", command=self.change_hotkey)
-
         hotkey_playback_choice_menu = tk.Menu(hotkey_menu, tearoff=0)
 
         self.playback_var = tk.StringVar(value=self.settings["playback"])
@@ -49,15 +45,14 @@ class Window:
         hotkey_playback_choice_menu.add_radiobutton(label="F8", variable=self.playback_var, value="Key.f8", command=self.change_hotkey)
         hotkey_playback_choice_menu.add_radiobutton(label="F12", variable=self.playback_var, value="Key.f12", command=self.change_hotkey)
         hotkey_playback_choice_menu.add_radiobutton(label="Esc", variable=self.playback_var, value="Key.esc", command=self.change_hotkey)
-
         hotkey_menu.add_cascade(label="Playback", menu=hotkey_playback_choice_menu)
-
+        
         menu_bar.add_cascade(label="Hotkeys", menu=hotkey_menu)
-
         playback_menu = tk.Menu(menu_bar, tearoff=0)
         playback_menu.add_command(label="Amount", command=self.set_playback_amount)
         menu_bar.add_cascade(label="Playback", menu=playback_menu)
 
+        self.root.iconbitmap("src/assets/minimacro.ico")
         self.root.config(menu=menu_bar)
 
     def set_playback_amount(self):

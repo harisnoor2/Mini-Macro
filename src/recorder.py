@@ -138,6 +138,16 @@ class Recorder:
             _key = self.serialize_key(key)
             self.events.append({"type":"key_release", "time":time() - self.recordtime, "key":_key})
 
+    def unpress_keys(self):
+        keys = {}
+        for event in self.events:
+            if event["type"] == "key_press":
+                keys.add(event["key"])
+        for key in keys:
+            self.keyboard_controller.release(self.deserialize_key(key))
+        for mouse_button in self.button_dict.keys():
+            self.mouse_controller.release(mouse_button)
+
 
     def stop_playback(self):
         self.playback = False
@@ -155,15 +165,18 @@ class Recorder:
         macro_events = self.events
         reverse_button_dict = {value:key for key,value in self.button_dict.items()}
         playback_amount = self.settings["playback_amount"]
-        inf_loop = True
-        while inf_loop:
+        inf_playback = True
+
+        while inf_playback:
             if playback_amount == 0:
                 _playback_amount = 1
             else:
                 _playback_amount = playback_amount
-                inf_loop = False
+                inf_playback = False
+
             for i in range(_playback_amount):
                 start_time = time()
+
                 for event in macro_events:
                     sleep_time = max(0,event["time"] - (time() - start_time))
                     if sleep_time:
@@ -191,6 +204,8 @@ class Recorder:
                     break
             if  not self.is_playbacking():
                 break
+
+        self.unpress_keys()
         self.playback = False
         self.ui_window.record_button_switch(True)
         self.current_thread = None

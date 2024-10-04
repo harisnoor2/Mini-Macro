@@ -1,4 +1,4 @@
-from src.ui import Window
+from ui import Window
 import json
 
 if __name__ == "__main__":
